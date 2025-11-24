@@ -8,13 +8,13 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/dotnet-labs/tizen-web-cli:latest
+      image: tizenplatform/tizen-cli:latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Node & Yarn
+      - name: Install NodeJS & Yarn
         run: |
           apt-get update
           apt-get install -y curl nodejs npm
@@ -28,7 +28,7 @@ jobs:
 
       - name: Create Tizen certificate
         run: |
-          tizen certificate -a jellycert -f jellycert -p password123 -t ENG
+          tizen certificate -a jellycert -f jellycert -p password123 -t Tizen
 
       - name: Package WGT
         run: |
