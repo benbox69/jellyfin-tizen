@@ -1,0 +1,59 @@
+name: Build Jellyfin Tizen
+
+on:
+  workflow_dispatch:        # Permet de lancer manuellement
+  push:
+    branches: [ main ]      # Build automatique sur push dans main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Install Tizen Studio CLI
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/tizen
+          wget https://download.tizen.org/sdk/Installer/tizen-studio_5.5/web-cli_Tizen_Studio_5.5_ubuntu-64.bin -O installer.bin
+          chmod +x installer.bin
+          ./installer.bin --accept-license --path $GITHUB_WORKSPACE/tizen
+          $GITHUB_WORKSPACE/tizen/tools/ide/pkgmgr/package-manager-cli.bin install Tizen.WebCLI
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build Jellyfin for Tizen
+        run: yarn build
+
+      - name: Create Tizen certificate
+        run: |
+          $GITHUB_WORKSPACE/tizen/tools/ide/bin/tizen certificate \
+            -a jellycert \
+            -f jellycert \
+            -p password123 \
+            -t ENG
+
+      - name: Package WGT
+        run: |
+          $GITHUB_WORKSPACE/tizen/tools/ide/bin/tizen package \
+            -t wgt \
+            -s jellycert \
+            -r ./dist
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        with:
+          tag_name: tizen-build-${{ github.run_number }}
+          name: Jellyfin Tizen Build ${{ github.run_number }}
+          files: dist/*.wgt
